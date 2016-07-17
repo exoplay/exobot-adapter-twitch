@@ -1,5 +1,5 @@
 {
-  "name": "exobot-adapter-twitch",
+  "name": "@exoplay/exobot-adapter-twitch",
   "version": "0.0.1",
   "description": "exobot adapter for twitch chat",
   "main": "index.js",
