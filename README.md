@@ -34,4 +34,4 @@ const Bot = new Exobot(BOT_NAME, {
 
 ## License
 
-MIT licensed. Copyright 2016 Exoplay, LLC. See LICENSE file for more details.
+LGPL licensed. Copyright 2016 Exoplay, LLC. See LICENSE file for more details.

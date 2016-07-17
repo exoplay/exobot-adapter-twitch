@@ -1,6 +1,6 @@
 {
   "name": "@exoplay/exobot-adapter-twitch",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "exobot adapter for twitch chat",
   "main": "twitch.js",
   "scripts": {
@@ -19,7 +19,7 @@
     "twitch"
   ],
   "author": "Jack Lawson <ajacksified@gmail.com>",
-  "license": "MIT",
+  "license": "LGPL",
   "bugs": {
     "url": "https://github.com/exoplay/exobot-adapter-twitch/issues"
   },
