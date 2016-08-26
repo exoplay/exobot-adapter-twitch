@@ -1,6 +1,6 @@
 {
   "name": "@exoplay/exobot-adapter-twitch",
-  "version": "0.2.1",
+  "version": "1.0.0",
   "description": "exobot adapter for twitch chat",
   "main": "twitch.js",
   "scripts": {
@@ -29,6 +29,6 @@
     "tmi.js": "^1.1.1"
   },
   "peerDependencies": {
-    "@exoplay/exobot": "1.x"
+    "@exoplay/exobot": "2.x"
   }
 }

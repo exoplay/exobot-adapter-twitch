@@ -25,6 +25,8 @@ export const EVENTS = {
 };
 
 export class TwitchAdapter extends Adapter {
+  name = 'Twitch';
+
   constructor ({ username, oauthPassword, channels=[] }) {
     super(...arguments);
 
@@ -161,4 +163,8 @@ export class TwitchAdapter extends Adapter {
 
   twitchNotice = () => { }
 
+  getUserIdByUserName (name) {
+    // return username as the id
+    return name;
+  }
 }
