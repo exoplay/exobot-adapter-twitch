@@ -71,7 +71,7 @@ export class TwitchAdapter extends Adapter {
       },
     });
 
-    
+
     this.client.connect();
 
     Object.keys(EVENTS).forEach(twitchEvent => {
@@ -121,12 +121,12 @@ export class TwitchAdapter extends Adapter {
   async twitchChat (channel, twitchUser, text ,self) {
     if (self) { return; }
 
-    console.log(text);
+    this.bot.log.debug(text);
     try {
       const user = await this.getUser(twitchUser.username, twitchUser.username, twitchUser);
       this.receive({ user, text, channel });
     } catch (err) {
-      console.log(err);
+      this.bot.log.warn(err);
     }
 
   }
@@ -141,7 +141,7 @@ export class TwitchAdapter extends Adapter {
       const user = await this.getUser(username, username);
       return this.enter({ user, channel });
     } catch (err) {
-      console.log(err);
+      this.bot.log.warn(err);
     }
   }
 
@@ -152,7 +152,7 @@ export class TwitchAdapter extends Adapter {
       const user = await this.getUser(username, username);
       return this.leave({ user, channel });
     } catch (err) {
-      console.log(err);
+      this.bot.log.warn(err);
     }
   }
 
@@ -167,7 +167,7 @@ export class TwitchAdapter extends Adapter {
       const user = await this.getUser(twitchUser.username, twitchUser.username, twitchUser);
       this.receiveWhisper({ user, text, channel: twitchUser.username });
     } catch (err) {
-      console.log(err);
+      this.bot.log.warn(err);
     }
 
   }
@@ -189,14 +189,14 @@ export class TwitchAdapter extends Adapter {
   twitchNotice = () => { }
 
   async getUserIdByUserName (name) {
-    let botuser;
+    let botUser;
     try {
-      botuser = await this.getUser(name, name);
+      botUser = await this.getUser(name, name);
     } catch (err) {
-      console.log(err);
+      this.bot.log.warn(err);
     }
 
-    return botuser.id;
+    return botUser.id;
   }
 
   getRolesForUser (adapterUserId) {
@@ -210,24 +210,24 @@ export class TwitchAdapter extends Adapter {
     return [];
   }
 
-  getRoles(userId, user, roles) {
-    let rolesUpdated = false;
-    if (user.subscriber === true) {
-      roles.push('subscriber');
-      rolesUpdated = true;
+  getRoles(userId, user) {
+    const roles = [];
+    if (user) {
+      if (user.subscriber === true) {
+        roles.push('subscriber');
+      }
+
+      if (user.mod === true) {
+        roles.push('mod');
+      }
+
+      if (user.turbo === true) {
+        roles.push('turbo');
+      }
+      return roles;
     }
 
-    if (user.mod === true) {
-      roles.push('mod');
-      rolesUpdated = true;
-    }
-
-    if (user.turbo === true) {
-      roles.push('turbo');
-      rolesUpdated = true;
-    }
-
-    return rolesUpdated;
+    return false;
   }
 
 }
