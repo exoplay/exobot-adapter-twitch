@@ -120,8 +120,7 @@ export class TwitchAdapter extends Adapter {
 
   async twitchChat (channel, twitchUser, text ,self) {
     if (self) { return; }
-
-    this.bot.log.debug(text);
+    
     try {
       const user = await this.getUser(twitchUser.username, twitchUser.username, twitchUser);
       this.receive({ user, text, channel });
