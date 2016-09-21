@@ -1,6 +1,6 @@
 import TMI from 'tmi.js';
 
-import { Adapter, User } from '@exoplay/exobot';
+import { Adapter } from '@exoplay/exobot';
 
 export const EVENTS = {
   connecting: 'twitchConnecting',
@@ -27,12 +27,13 @@ export const EVENTS = {
 export class TwitchAdapter extends Adapter {
   name = 'Twitch';
 
-  constructor ({ username, oauthPassword, channels=[] }) {
+  constructor ({ username, oauthPassword, channels=[], adapterName }) {
     super(...arguments);
 
     this.username = username;
     this.oauthPassword = oauthPassword;
     this.channels = channels;
+    this.name = adapterName || this.name;
   }
 
   register (bot) {
@@ -70,11 +71,12 @@ export class TwitchAdapter extends Adapter {
       },
     });
 
+
     this.client.connect();
 
     Object.keys(EVENTS).forEach(twitchEvent => {
       const mappedFn = this[EVENTS[twitchEvent]];
-      this.client.on(twitchEvent, (...args) => mappedFn(...args));
+      this.client.on(twitchEvent, (...args) => mappedFn.bind(this)(...args));
       this.client.on(twitchEvent, (...args) => {
         this.bot.emitter.emit(`twitch-${twitchEvent}`, ...args);
       });
@@ -98,12 +100,12 @@ export class TwitchAdapter extends Adapter {
   twitchConnected = () => {
     this.status = Adapter.STATUS.CONNECTED;
     this.bot.emitter.emit('connected', this.id);
-    this.bot.log.notice('Connected to Twitch.');
+    this.bot.log.notice(`Connected to Twitch as ${this.username}`);
   }
 
   twitchLogon = () => {
     this.status = Adapter.STATUS.CONNECTED;
-    this.bot.log.notice('Successfully logged on to Twitch.');
+    this.bot.log.notice(`Successfully logged on to Twitch as ${this.username}`);
   }
 
   twitchDisconnected = () => {
@@ -116,35 +118,57 @@ export class TwitchAdapter extends Adapter {
     this.bot.log.notice('Reconnecting to Twitch.');
   }
 
-  twitchChat = (channel, twitchUser, text) => {
-    if (twitchUser.username === this.username) { return; }
-    const user = new User(twitchUser.username);
-    this.receive({ user, text, channel });
+  async twitchChat (channel, twitchUser, text ,self) {
+    if (self) { return; }
+
+    try {
+      const user = await this.getUser(twitchUser.username, twitchUser.username, twitchUser);
+      this.receive({ user, text, channel });
+    } catch (err) {
+      this.bot.log.warn(err);
+    }
+
   }
 
   twitchEmoteonly = () => {
   }
 
-  twitchJoin = (channel, username) => {
+  async twitchJoin (channel, username) {
     if (username !== this.username) { return; }
-    const user = new User(username);
-    return this.enter({ user, channel });
+
+    try {
+      const user = await this.getUser(username, username);
+      return this.enter({ user, channel });
+    } catch (err) {
+      this.bot.log.warn(err);
+    }
   }
 
-  twitchPart = (channel, username) => {
+  async twitchPart (channel, username) {
     if (username !== this.username) { return; }
-    const user = new User(username);
-    return this.leave({ user, channel });
+
+    try {
+      const user = await this.getUser(username, username);
+      return this.leave({ user, channel });
+    } catch (err) {
+      this.bot.log.warn(err);
+    }
   }
 
   twitchPing = () => {
     this.ping();
   }
 
-  twitchWhisper = (twitchUser, text) => {
-    if (twitchUser.username === this.username) { return; }
-    const user = new User(twitchUser.username);
-    this.receiveWhisper({ user, text, channel: twitchUser.username });
+  async twitchWhisper (username, twitchUser, text, self) {
+    if (self) { return; }
+
+    try {
+      const user = await this.getUser(twitchUser.username, twitchUser.username, twitchUser);
+      this.receiveWhisper({ user, text, channel: twitchUser.username });
+    } catch (err) {
+      this.bot.log.warn(err);
+    }
+
   }
 
   twitchPong = () => { }
@@ -163,8 +187,45 @@ export class TwitchAdapter extends Adapter {
 
   twitchNotice = () => { }
 
-  getUserIdByUserName (name) {
-    // return username as the id
-    return name;
+  async getUserIdByUserName (name) {
+    let botUser;
+    try {
+      botUser = await this.getUser(name, name);
+    } catch (err) {
+      this.bot.log.warn(err);
+    }
+
+    return botUser.id;
   }
+
+  getRolesForUser (adapterUserId) {
+    if (this.roleMapping && this.adapterUsers && this.adapterUsers[adapterUserId]) {
+      return this.adapterUsers[adapterUserId].roles
+      .filter(role => this.roleMapping[role])
+      .map(role => this.roleMapping[role]);
+    }
+
+    return [];
+  }
+
+  getRoles(userId, user) {
+    const roles = [];
+    if (user) {
+      if (user.subscriber === true) {
+        roles.push('subscriber');
+      }
+
+      if (user.mod === true) {
+        roles.push('mod');
+      }
+
+      if (user.turbo === true) {
+        roles.push('turbo');
+      }
+      return roles;
+    }
+
+    return false;
+  }
+
 }
