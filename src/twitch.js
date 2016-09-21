@@ -120,7 +120,7 @@ export class TwitchAdapter extends Adapter {
 
   async twitchChat (channel, twitchUser, text ,self) {
     if (self) { return; }
-    
+
     try {
       const user = await this.getUser(twitchUser.username, twitchUser.username, twitchUser);
       this.receive({ user, text, channel });
@@ -199,11 +199,10 @@ export class TwitchAdapter extends Adapter {
   }
 
   getRolesForUser (adapterUserId) {
-    if (this.adapterUsers[adapterUserId]) {
-      return this.adapterUsers[adapterUserId].roles.map((role) => {
-        if (this.roleMapping[role]) {
-          return this.roleMapping[role];
-        }});
+    if (this.roleMapping && this.adapterUsers && this.adapterUsers[adapterUserId]) {
+      return this.adapterUsers[adapterUserId].roles
+      .filter(role => this.roleMapping[role])
+      .map(role => this.roleMapping[role]);
     }
 
     return [];
