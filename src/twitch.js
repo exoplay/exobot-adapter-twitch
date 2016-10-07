@@ -1,6 +1,6 @@
 import TMI from 'tmi.js';
 
-import { Adapter } from '@exoplay/exobot';
+import { Adapter, AdapterOperationTypes as AT} from '@exoplay/exobot';
 
 export const EVENTS = {
   connecting: 'twitchConnecting',
@@ -81,6 +81,8 @@ export default class TwitchAdapter extends Adapter {
         this.bot.emitter.emit(`twitch-${twitchEvent}`, ...args);
       });
     });
+
+    this.configureAdapterOperations();
   }
 
   send (message) {
@@ -226,6 +228,47 @@ export default class TwitchAdapter extends Adapter {
     }
 
     return false;
+  }
+
+  configureAdapterOperations() {
+    this.bot.emitter.on(AT.DISCIPLINE_USER_WARNING, this.whisperUser, this);
+    this.bot.emitter.on(AT.DISCIPLINE_USER_TEMPORARY, this.timeoutUser, this);
+    this.bot.emitter.on(AT.DISCIPLINE_USER_PERMANENT, this.banUser, this);
+    this.bot.emitter.on(AT.WHISPER_USER, this.whisperUser, this);
+  }
+
+  whisperUser(adapterName, options) {
+    if (!adapterName || adapterName === this.name) {
+      const adapterUserId = this.getAdapterUserIdById(options.userId);
+      if (adapterUserId) {
+        this.client.whisper(adapterUserId, options.messageText)
+          .catch(reason => {this.bot.log.warning(reason);});
+      }
+    }
+  }
+
+  timeoutUser(adapterName, options) {
+    if (!adapterName || adapterName === this.name) {
+      const adapterUserId = this.getAdapterUserIdById(options.userId);
+      if (adapterUserId) {
+        this.client.getChannels().forEach(channel => {
+          this.client.timeout(channel,adapterUserId, options.duration || 1, options.messageText)
+            .catch(reason => {this.bot.log.warning(reason);});
+        });
+      }
+    }
+  }
+
+  banUser(adapterName, options) {
+    if (!adapterName || adapterName === this.name) {
+      const adapterUserId = this.getAdapterUserIdById(options.userId);
+      if (adapterUserId) {
+        this.client.getChannels().forEach(channel => {
+          this.client.ban(channel,adapterUserId, options.duration || 1, options.messageText)
+            .catch(reason => {this.bot.log.warning(reason);});
+        });
+      }
+    }
   }
 
 }
