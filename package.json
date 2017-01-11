@@ -1,11 +1,11 @@
 {
   "name": "@exoplay/exobot-adapter-twitch",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "exobot adapter for twitch chat",
   "main": "twitch.js",
   "scripts": {
-    "build": "exobot-build",
-    "watch": "exobot-buil --watch"
+    "build": "exobot build -i src/twitch.js -o twitch.js",
+    "watch": "exobot build --watch -i src/twitch.js -o twitch.js"
   },
   "repository": {
     "type": "git",
@@ -24,16 +24,17 @@
   },
   "homepage": "https://github.com/exoplay/exobot-adapter-twitch#readme",
   "dependencies": {
-    "tmi.js": "^1.1.1"
+    "babel-core": "^6.21.0",
+    "babel-loader": "^6.2.10",
+    "tmi.js": "^1.1.2"
   },
   "devDependencies": {
-    "@exoplay/exobot": "3.x",
-    "@r/build": "git://github.com/ajacksified/node-build#679c3f3d47c0916237d55128ece4cc817b489ef8",
-    "babel-plugin-syntax-decorators": "^6.13.0",
-    "babel-plugin-transform-decorators": "^6.13.0",
-    "babel-plugin-transform-decorators-legacy": "^1.3.4"
+    "@exoplay/exobot": "4.x",
+    "source-map-support": "^0.4.8"
   },
   "peerDependencies": {
-    "@exoplay/exobot": "3.x"
+    "@exoplay/exobot-build": "~0.2.1",
+    "@exoplay/exobot": "4.x",
+    "source-map-support": "^0.4.8"
   }
 }

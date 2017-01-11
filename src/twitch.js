@@ -24,8 +24,8 @@ export const EVENTS = {
   whisper: 'twitchWhisper',
 };
 
-export class TwitchAdapter extends Adapter {
-  name = 'Twitch';
+export default class TwitchAdapter extends Adapter {
+  static type = 'twitch';
 
   constructor ({ username, oauthPassword, channels=[], adapterName }) {
     super(...arguments);
