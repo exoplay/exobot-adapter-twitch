@@ -1,6 +1,6 @@
 import TMI from 'tmi.js';
 
-import { Adapter, AdapterOperationTypes as AT} from '@exoplay/exobot';
+import { Adapter, AdapterOperationTypes as AT, PropTypes as T } from '@exoplay/exobot';
 
 export const EVENTS = {
   connecting: 'twitchConnecting',
@@ -26,29 +26,15 @@ export const EVENTS = {
 
 export default class TwitchAdapter extends Adapter {
   static type = 'twitch';
-
+  static propTypes = {
+    username: T.string.isRequired,
+    oauthPassword = T.string.isRequired,
+    channels = T.array.isRequired,
+  }
   constructor ({ username, oauthPassword, channels=[], adapterName }) {
     super(...arguments);
 
-    this.username = username;
-    this.oauthPassword = oauthPassword;
-    this.channels = channels;
-    this.name = adapterName || this.name;
-  }
-
-  register (bot) {
-    super.register(...arguments);
-
-    const { username, oauthPassword, channels } = this;
-
-    if (!username || !oauthPassword) {
-      bot.log.error('username and oauthPassword are required to connect to Twitch.');
-      return;
-    }
-
-    if (!channels.length) {
-      bot.log.critical('No channels passed to Twitch adapter to connect to.');
-    }
+    const { username, oauthPassword, channels } = this.options;
 
     this.client = new TMI.client({
       channels,
@@ -127,7 +113,7 @@ export default class TwitchAdapter extends Adapter {
       const user = await this.getUser(twitchUser.username, twitchUser.username, twitchUser);
       this.receive({ user, text, channel });
     } catch (err) {
-      this.bot.log.warn(err);
+      this.bot.log.warning(err);
     }
 
   }
@@ -142,7 +128,7 @@ export default class TwitchAdapter extends Adapter {
       const user = await this.getUser(username, username);
       return this.enter({ user, channel });
     } catch (err) {
-      this.bot.log.warn(err);
+      this.bot.log.warning(err);
     }
   }
 
@@ -153,7 +139,7 @@ export default class TwitchAdapter extends Adapter {
       const user = await this.getUser(username, username);
       return this.leave({ user, channel });
     } catch (err) {
-      this.bot.log.warn(err);
+      this.bot.log.warning(err);
     }
   }
 
@@ -168,7 +154,7 @@ export default class TwitchAdapter extends Adapter {
       const user = await this.getUser(twitchUser.username, twitchUser.username, twitchUser);
       this.receiveWhisper({ user, text, channel: twitchUser.username });
     } catch (err) {
-      this.bot.log.warn(err);
+      this.bot.log.warning(err);
     }
 
   }
@@ -194,7 +180,7 @@ export default class TwitchAdapter extends Adapter {
     try {
       botUser = await this.getUser(name, name);
     } catch (err) {
-      this.bot.log.warn(err);
+      this.bot.log.warning(err);
     }
 
     return botUser.id;
@@ -264,7 +250,7 @@ export default class TwitchAdapter extends Adapter {
       const adapterUserId = this.getAdapterUserIdById(options.userId);
       if (adapterUserId) {
         this.client.getChannels().forEach(channel => {
-          this.client.ban(channel,adapterUserId, options.duration || 1, options.messageText)
+          this.client.ban(channel,adapterUserId, options.messageText)
             .catch(reason => {this.bot.log.warning(reason);});
         });
       }
