@@ -24,14 +24,26 @@ export const EVENTS = {
   whisper: 'twitchWhisper',
 };
 
+const splitLine = (input, length) => {
+  const output = [];
+  while (input.length > length) {
+    const lastSpace = input.substring(0, length).lastIndexOf(' ');
+    output.push(input.substring(0, lastSpace));
+    input = input.substring(lastSpace + 1);
+  }
+  output.push(input);
+  return output;
+};
+
 export default class TwitchAdapter extends Adapter {
   static type = 'twitch';
   static propTypes = {
     username: T.string.isRequired,
-    oauthPassword = T.string.isRequired,
-    channels = T.array.isRequired,
-  }
-  constructor ({ username, oauthPassword, channels=[], adapterName }) {
+    oauthPassword: T.string.isRequired,
+    channels: T.array.isRequired,
+  };
+
+  constructor() {
     super(...arguments);
 
     const { username, oauthPassword, channels } = this.options;
@@ -48,9 +60,9 @@ export default class TwitchAdapter extends Adapter {
       secure: true,
       reconnect: true,
       logger: {
-        info: bot.log.info.bind(bot.log),
-        warn: bot.log.warning.bind(bot.log),
-        error: bot.log.error.bind(bot.log),
+        info: this.bot.log.info.bind(this.bot.log),
+        warn: this.bot.log.warning.bind(this.bot.log),
+        error: this.bot.log.error.bind(this.bot.log),
       },
       connection: {
         cluster: 'aws',
@@ -71,10 +83,22 @@ export default class TwitchAdapter extends Adapter {
     this.configureAdapterOperations();
   }
 
-  send (message) {
+  send(message) {
     this.bot.log.debug(`Sending ${message.text} to ${message.channel}`);
 
     if (message.whisper) {
+      if (message.text.length > 450) {
+        const messages = splitLine(message.text, 450);
+        let timeout = 350;
+        messages.forEach(msg => {
+          setTimeout(() => {
+            this.client.whisper(message.user.name, msg);
+          }, timeout);
+          timeout = timeout + 350;
+
+        });
+      }
+
       return this.client.whisper(message.user.name, message.text);
     }
 
@@ -106,7 +130,7 @@ export default class TwitchAdapter extends Adapter {
     this.bot.log.notice('Reconnecting to Twitch.');
   }
 
-  async twitchChat (channel, twitchUser, text ,self) {
+  async twitchChat(channel, twitchUser, text ,self) {
     if (self) { return; }
 
     try {
@@ -121,7 +145,7 @@ export default class TwitchAdapter extends Adapter {
   twitchEmoteonly = () => {
   }
 
-  async twitchJoin (channel, username) {
+  async twitchJoin(channel, username) {
     if (username !== this.username) { return; }
 
     try {
@@ -132,7 +156,7 @@ export default class TwitchAdapter extends Adapter {
     }
   }
 
-  async twitchPart (channel, username) {
+  async twitchPart(channel, username) {
     if (username !== this.username) { return; }
 
     try {
@@ -147,7 +171,7 @@ export default class TwitchAdapter extends Adapter {
     this.ping();
   }
 
-  async twitchWhisper (username, twitchUser, text, self) {
+  async twitchWhisper(username, twitchUser, text, self) {
     if (self) { return; }
 
     try {
@@ -175,7 +199,7 @@ export default class TwitchAdapter extends Adapter {
 
   twitchNotice = () => { }
 
-  async getUserIdByUserName (name) {
+  async getUserIdByUserName(name) {
     let botUser;
     try {
       botUser = await this.getUser(name, name);
@@ -186,7 +210,7 @@ export default class TwitchAdapter extends Adapter {
     return botUser.id;
   }
 
-  getRolesForUser (adapterUserId) {
+  getRolesForUser(adapterUserId) {
     if (this.roleMapping && this.adapterUsers && this.adapterUsers[adapterUserId]) {
       return this.adapterUsers[adapterUserId].roles
       .filter(role => this.roleMapping[role])

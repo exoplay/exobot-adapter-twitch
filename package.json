@@ -1,11 +1,13 @@
 {
   "name": "@exoplay/exobot-adapter-twitch",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "exobot adapter for twitch chat",
   "main": "twitch.js",
   "scripts": {
     "build": "exobot build -i src/twitch.js -o twitch.js",
-    "watch": "exobot build --watch -i src/twitch.js -o twitch.js"
+    "watch": "exobot build --watch -i src/twitch.js -o twitch.js",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix"
   },
   "repository": {
     "type": "git",
@@ -24,17 +26,24 @@
   },
   "homepage": "https://github.com/exoplay/exobot-adapter-twitch#readme",
   "dependencies": {
-    "babel-core": "^6.21.0",
-    "babel-loader": "^6.2.10",
+    "@exoplay/exobot": ">=4.1 <5",
     "tmi.js": "^1.1.2"
   },
   "devDependencies": {
-    "@exoplay/exobot": "4.x",
-    "source-map-support": "^0.4.8"
-  },
-  "peerDependencies": {
+    "@exoplay/exobot": ">=4.1 <5",
     "@exoplay/exobot-build": "~0.2.1",
-    "@exoplay/exobot": "4.x",
-    "source-map-support": "^0.4.8"
+    "babel-eslint": "^7.1.1",
+    "eslint": "^3.12.2",
+    "eslint-config-airbnb": "^13.0.0",
+    "eslint-import-resolver-node": "^0.3.0",
+    "eslint-plugin-babel": "^4.0.0",
+    "eslint-plugin-import": "^2.2.0",
+    "eslint-plugin-jsx-a11y": "^2.2.3",
+    "eslint-plugin-react": "^6.6.0",
+    "regenerator-runtime": "^0.9.6",
+    "source-map-support": "^0.4.8",
+    "babel-core": "^6.21.0",
+    "babel-loader": "^6.2.10",
+    "webpack": "^2.2.0"
   }
 }
