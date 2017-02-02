@@ -6,4 +6,4 @@ start.sh
 bin/*
 build/
 example/
-twitch.js*
+/twitch.js*

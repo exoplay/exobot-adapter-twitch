@@ -1,6 +1,6 @@
 import TMI from 'tmi.js';
 
-import { Adapter } from '@exoplay/exobot';
+import { Adapter, AdapterOperationTypes as AT, PropTypes as T } from '@exoplay/exobot';
 
 export const EVENTS = {
   connecting: 'twitchConnecting',
@@ -24,31 +24,29 @@ export const EVENTS = {
   whisper: 'twitchWhisper',
 };
 
+const splitLine = (input, length) => {
+  const output = [];
+  while (input.length > length) {
+    const lastSpace = input.substring(0, length).lastIndexOf(' ');
+    output.push(input.substring(0, lastSpace));
+    input = input.substring(lastSpace + 1);
+  }
+  output.push(input);
+  return output;
+};
+
 export default class TwitchAdapter extends Adapter {
   static type = 'twitch';
+  static propTypes = {
+    username: T.string.isRequired,
+    oauthPassword: T.string.isRequired,
+    channels: T.array.isRequired,
+  };
 
-  constructor ({ username, oauthPassword, channels=[], adapterName }) {
+  constructor() {
     super(...arguments);
 
-    this.username = username;
-    this.oauthPassword = oauthPassword;
-    this.channels = channels;
-    this.name = adapterName || this.name;
-  }
-
-  register (bot) {
-    super.register(...arguments);
-
-    const { username, oauthPassword, channels } = this;
-
-    if (!username || !oauthPassword) {
-      bot.log.error('username and oauthPassword are required to connect to Twitch.');
-      return;
-    }
-
-    if (!channels.length) {
-      bot.log.critical('No channels passed to Twitch adapter to connect to.');
-    }
+    const { username, oauthPassword, channels } = this.options;
 
     this.client = new TMI.client({
       channels,
@@ -62,9 +60,9 @@ export default class TwitchAdapter extends Adapter {
       secure: true,
       reconnect: true,
       logger: {
-        info: bot.log.info.bind(bot.log),
-        warn: bot.log.warning.bind(bot.log),
-        error: bot.log.error.bind(bot.log),
+        info: this.bot.log.info.bind(this.bot.log),
+        warn: this.bot.log.warning.bind(this.bot.log),
+        error: this.bot.log.error.bind(this.bot.log),
       },
       connection: {
         cluster: 'aws',
@@ -81,12 +79,26 @@ export default class TwitchAdapter extends Adapter {
         this.bot.emitter.emit(`twitch-${twitchEvent}`, ...args);
       });
     });
+
+    this.configureAdapterOperations();
   }
 
-  send (message) {
+  send(message) {
     this.bot.log.debug(`Sending ${message.text} to ${message.channel}`);
 
     if (message.whisper) {
+      if (message.text.length > 450) {
+        const messages = splitLine(message.text, 450);
+        let timeout = 350;
+        messages.forEach(msg => {
+          setTimeout(() => {
+            this.client.whisper(message.user.name, msg);
+          }, timeout);
+          timeout = timeout + 350;
+
+        });
+      }
+
       return this.client.whisper(message.user.name, message.text);
     }
 
@@ -118,14 +130,14 @@ export default class TwitchAdapter extends Adapter {
     this.bot.log.notice('Reconnecting to Twitch.');
   }
 
-  async twitchChat (channel, twitchUser, text ,self) {
+  async twitchChat(channel, twitchUser, text ,self) {
     if (self) { return; }
 
     try {
       const user = await this.getUser(twitchUser.username, twitchUser.username, twitchUser);
       this.receive({ user, text, channel });
     } catch (err) {
-      this.bot.log.warn(err);
+      this.bot.log.warning(err);
     }
 
   }
@@ -133,25 +145,25 @@ export default class TwitchAdapter extends Adapter {
   twitchEmoteonly = () => {
   }
 
-  async twitchJoin (channel, username) {
+  async twitchJoin(channel, username) {
     if (username !== this.username) { return; }
 
     try {
       const user = await this.getUser(username, username);
       return this.enter({ user, channel });
     } catch (err) {
-      this.bot.log.warn(err);
+      this.bot.log.warning(err);
     }
   }
 
-  async twitchPart (channel, username) {
+  async twitchPart(channel, username) {
     if (username !== this.username) { return; }
 
     try {
       const user = await this.getUser(username, username);
       return this.leave({ user, channel });
     } catch (err) {
-      this.bot.log.warn(err);
+      this.bot.log.warning(err);
     }
   }
 
@@ -159,14 +171,14 @@ export default class TwitchAdapter extends Adapter {
     this.ping();
   }
 
-  async twitchWhisper (username, twitchUser, text, self) {
+  async twitchWhisper(username, twitchUser, text, self) {
     if (self) { return; }
 
     try {
       const user = await this.getUser(twitchUser.username, twitchUser.username, twitchUser);
       this.receiveWhisper({ user, text, channel: twitchUser.username });
     } catch (err) {
-      this.bot.log.warn(err);
+      this.bot.log.warning(err);
     }
 
   }
@@ -187,18 +199,18 @@ export default class TwitchAdapter extends Adapter {
 
   twitchNotice = () => { }
 
-  async getUserIdByUserName (name) {
+  async getUserIdByUserName(name) {
     let botUser;
     try {
       botUser = await this.getUser(name, name);
     } catch (err) {
-      this.bot.log.warn(err);
+      this.bot.log.warning(err);
     }
 
     return botUser.id;
   }
 
-  getRolesForUser (adapterUserId) {
+  getRolesForUser(adapterUserId) {
     if (this.roleMapping && this.adapterUsers && this.adapterUsers[adapterUserId]) {
       return this.adapterUsers[adapterUserId].roles
       .filter(role => this.roleMapping[role])
@@ -226,6 +238,47 @@ export default class TwitchAdapter extends Adapter {
     }
 
     return false;
+  }
+
+  configureAdapterOperations() {
+    this.bot.emitter.on(AT.DISCIPLINE_USER_WARNING, this.whisperUser, this);
+    this.bot.emitter.on(AT.DISCIPLINE_USER_TEMPORARY, this.timeoutUser, this);
+    this.bot.emitter.on(AT.DISCIPLINE_USER_PERMANENT, this.banUser, this);
+    this.bot.emitter.on(AT.WHISPER_USER, this.whisperUser, this);
+  }
+
+  whisperUser(adapterName, options) {
+    if (!adapterName || adapterName === this.name) {
+      const adapterUserId = this.getAdapterUserIdById(options.userId);
+      if (adapterUserId) {
+        this.client.whisper(adapterUserId, options.messageText)
+          .catch(reason => {this.bot.log.warning(reason);});
+      }
+    }
+  }
+
+  timeoutUser(adapterName, options) {
+    if (!adapterName || adapterName === this.name) {
+      const adapterUserId = this.getAdapterUserIdById(options.userId);
+      if (adapterUserId) {
+        this.client.getChannels().forEach(channel => {
+          this.client.timeout(channel,adapterUserId, options.duration || 1, options.messageText)
+            .catch(reason => {this.bot.log.warning(reason);});
+        });
+      }
+    }
+  }
+
+  banUser(adapterName, options) {
+    if (!adapterName || adapterName === this.name) {
+      const adapterUserId = this.getAdapterUserIdById(options.userId);
+      if (adapterUserId) {
+        this.client.getChannels().forEach(channel => {
+          this.client.ban(channel,adapterUserId, options.messageText)
+            .catch(reason => {this.bot.log.warning(reason);});
+        });
+      }
+    }
   }
 
 }
